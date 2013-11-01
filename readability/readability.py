@@ -17,16 +17,17 @@ from htmls import get_title
 from htmls import shorten_title
 
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger()
 
 
 REGEXES = {
-    'unlikelyCandidatesRe': re.compile('combx|comment|community|disqus|extra|foot|header|menu|remark|rss|shoutbox|sidebar|sponsor|ad-break|agegate|pagination|pager|popup|tweet|twitter', re.I),
-    'okMaybeItsACandidateRe': re.compile('and|article|body|column|main|shadow', re.I),
-    'positiveRe': re.compile('article|body|content|entry|hentry|main|page|pagination|post|text|blog|story', re.I),
-    'negativeRe': re.compile('combx|comment|com-|contact|foot|footer|footnote|masthead|media|meta|outbrain|promo|related|scroll|shoutbox|sidebar|sponsor|shopping|tags|tool|widget', re.I),
-    'divToPElementsRe': re.compile('<(a|blockquote|dl|div|img|ol|p|pre|table|ul)', re.I),
+    'veryBadCandidatesRe': re.compile(r'neverexpand', re.I),
+    'unlikelyCandidatesRe': re.compile(r'combx|comment|community|coordinates|disqus|extra|foot|geo|header|menu|never|nofollow|noprint|remark|rss|shoutbox|sidebar|sponsor|ad-break|agegate|pagination|pager|popup|tweet|twitter', re.I),
+    'okMaybeItsACandidateRe': re.compile(r'and|article|body|column|main|shadow', re.I),
+    'positiveRe': re.compile(r'article|body|content|entry|hentry|main|page|pagination|post|text|blog|story', re.I),
+    'negativeRe': re.compile(r'combx|comment|com-|contact|foot|footer|footnote|masthead|media|meta|outbrain|promo|related|scroll|shoutbox|sidebar|sponsor|shopping|tags|tool|widget', re.I),
+    'divToPElementsRe': re.compile(r'<(a|blockquote|dl|div|img|ol|p|pre|table|ul)', re.I),
     #'replaceBrsRe': re.compile('(<br[^>]*>[ \n\r\t]*){2,}',re.I),
     #'replaceFontsRe': re.compile('<(\/?)font[^>]*>',re.I),
     #'trimRe': re.compile('^\s+|\s+$/'),
@@ -369,14 +370,24 @@ class Document:
             log.debug(*a)
 
     def remove_unlikely_candidates(self):
+        to_delete = []
         for elem in self.html.iter():
-            s = "%s %s" % (elem.get('class', ''), elem.get('id', ''))
+            s = u"%s %s" % (elem.get('class', ''), elem.get('id', ''))
             if len(s) < 2:
                 continue
-            #self.debug(s)
-            if REGEXES['unlikelyCandidatesRe'].search(s) and (not REGEXES['okMaybeItsACandidateRe'].search(s)) and elem.tag not in ['html', 'body']:
-                self.debug("Removing unlikely candidate - %s" % describe(elem))
-                elem.drop_tree()
+
+            self.debug(u"Analyzing class/id: '%s' " % s)
+            if REGEXES['veryBadCandidatesRe'].search(s):
+                self.debug(" -- looks like bad")
+                to_delete.append(elem)
+            
+            elif REGEXES['unlikelyCandidatesRe'].search(s) and (not REGEXES['okMaybeItsACandidateRe'].search(s)) and elem.tag not in ['html', 'body']:
+                self.debug(" --bad")
+                to_delete.append(elem)
+        for elem in to_delete[::-1]:
+
+            self.debug("Removing unlikely candidate - %s" % describe(elem))
+            elem.drop_tree()
 
     def transform_misused_divs_into_paragraphs(self):
         for elem in self.tags(self.html, 'div'):
@@ -485,11 +496,11 @@ class Document:
                 elif content_length < (MIN_LEN) and (counts["img"] == 0 or counts["img"] > 2):
                     reason = "too short content length %s without a single image" % content_length
                     to_remove = True
-                elif weight < 25 and link_density > 0.2:
+                elif weight < 25 and link_density > 0.2 and counts['img'] != 1:
                         reason = "too many links %.3f for its weight %s" % (
                             link_density, weight)
                         to_remove = True
-                elif weight >= 25 and link_density > 0.5:
+                elif weight >= 25 and link_density > 0.5 and counts['img'] != 1:
                     reason = "too many links %.3f for its weight %s" % (
                         link_density, weight)
                     to_remove = True
