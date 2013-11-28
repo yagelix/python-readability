@@ -22,11 +22,11 @@ log = logging.getLogger()
 
 
 REGEXES = {
-    'veryBadCandidatesRe': re.compile(r'neverexpand', re.I),
+    'veryBadCandidatesRe': re.compile(r'neverexpand|(display\s*:\s*none)', re.I),
     'unlikelyCandidatesRe': re.compile(r'combx|comment|community|coordinates|disqus|extra|foot|geo|header|menu|never|nofollow|noprint|remark|rss|shoutbox|sidebar|sponsor|ad-break|agegate|pagination|pager|popup|tweet|twitter', re.I),
     'okMaybeItsACandidateRe': re.compile(r'and|article|body|column|main|shadow', re.I),
     'positiveRe': re.compile(r'article|body|content|entry|hentry|main|page|pagination|post|text|blog|story', re.I),
-    'negativeRe': re.compile(r'combx|comment|com-|contact|foot|footer|footnote|masthead|media|meta|outbrain|promo|related|scroll|shoutbox|sidebar|sponsor|shopping|tags|tool|widget', re.I),
+    'negativeRe': re.compile(r'combx|comment|com-|contact|foot|footer|footnote|masthead|media|meta|outbrain|promo|related|scroll|shoutbox|sidebar|sponsor|shopping|tags|tool|widget|(display\s*:\s*none)', re.I),
     'divToPElementsRe': re.compile(r'<(a|blockquote|dl|div|img|ol|p|pre|table|ul)', re.I),
     #'replaceBrsRe': re.compile('(<br[^>]*>[ \n\r\t]*){2,}',re.I),
     #'replaceFontsRe': re.compile('<(\/?)font[^>]*>',re.I),
@@ -45,7 +45,7 @@ class Unparseable(ValueError):
 def describe(node, depth=1):
     if not hasattr(node, 'tag'):
         return "[%s]" % type(node)
-    name = node.tag
+    name = node.tag + "!: " +  ",".join("%s: %s" % a for a in node.items())
     if node.get('id', ''):
         name += '#' + node.get('id')
     if node.get('class', ''):
@@ -327,7 +327,7 @@ class Document:
 
     def class_weight(self, e):
         weight = 0
-        for feature in [e.get('class', None), e.get('id', None)]:
+        for feature in [e.get('class', None), e.get('id', None), e.get('style', None)]:
             if feature:
                 if REGEXES['negativeRe'].search(feature):
                     weight -= 25
@@ -372,11 +372,12 @@ class Document:
     def remove_unlikely_candidates(self):
         to_delete = []
         for elem in self.html.iter():
-            s = u"%s %s" % (elem.get('class', ''), elem.get('id', ''))
-            if len(s) < 2:
+            s = u"%s %s %s" % (elem.get('class', ''), elem.get('id', ''), elem.get('style', ''))
+            attrs = ",".join("%s:%s" % a for a in elem.items())           	 
+            self.debug(u"Analyzing %s (%s): class/id/style: '%s' " % (elem.tag, attrs, s))
+            if len(s) < 3:
                 continue
 
-            self.debug(u"Analyzing class/id: '%s' " % s)
             if REGEXES['veryBadCandidatesRe'].search(s):
                 self.debug(" -- looks like bad")
                 to_delete.append(elem)
