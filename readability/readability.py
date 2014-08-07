@@ -320,8 +320,8 @@ class Document:
                 score,
                 describe(elem),
                 ld,
-                score * (1 - ld)))
-            candidate['content_score'] *= (1 - ld)
+                score * (1 - ld*0.75)))
+            candidate['content_score'] *= (1 - ld*0.75)
 
         return candidates
 
@@ -485,7 +485,7 @@ class Document:
 
                 #if el.tag == 'div' and counts["img"] >= 1:
                 #    continue
-                if counts["p"] and counts["img"] > counts["p"]:
+                if counts["p"] and counts["img"] > counts["p"]*4:
                     reason = "too many images (%s)" % counts["img"]
                     to_remove = True
                 elif counts["li"] > counts["p"] and tag != "ul" and tag != "ol":
