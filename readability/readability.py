@@ -23,9 +23,9 @@ log = logging.getLogger()
 
 REGEXES = {
     'veryBadCandidatesRe': re.compile(r'neverexpand|(display\s*:\s*none)', re.I),
-    'unlikelyCandidatesRe': re.compile(r'combx|comment|community|coordinates|disqus|extra|foot|geo|header|menu|never|nofollow|noprint|remark|rss|shoutbox|sidebar|sponsor|ad-break|agegate|pagination|pager|popup|tweet|twitter', re.I),
-    'okMaybeItsACandidateRe': re.compile(r'and|article|body|column|main|shadow', re.I),
-    'positiveRe': re.compile(r'article|body|content|entry|hentry|main|page|pagination|post|text|blog|story', re.I),
+    'unlikelyCandidatesRe': re.compile(r'combx|comment|community|coordinates|disqus|extra|foot|geo|header|menu|never|nofollow|noprint|remark|rss|shoutbox|sidebar|sponsor|ad-break|agegate|pagination|pager|popup|tweet|twitter|siteSub|contentSub|mw-editsection', re.I),
+    'okMaybeItsACandidateRe': re.compile(r'and|article|body|column|main|shadow|(external\stext)', re.I),
+    'positiveRe': re.compile(r'article|body|content|entry|hentry|main|page|pagination|post|text|blog|story|firstHeading|(external\stext)', re.I),
     'negativeRe': re.compile(r'combx|comment|com-|contact|foot|footer|footnote|masthead|media|meta|outbrain|promo|related|scroll|shoutbox|sidebar|sponsor|shopping|tags|tool|widget|(display\s*:\s*none)', re.I),
     'divToPElementsRe': re.compile(r'<(a|blockquote|dl|div|img|ol|p|pre|table|ul)', re.I),
     #'replaceBrsRe': re.compile('(<br[^>]*>[ \n\r\t]*){2,}',re.I),
@@ -438,6 +438,7 @@ class Document:
             self.TEXT_LENGTH_THRESHOLD)
         for header in self.tags(node, "h1", "h2", "h3", "h4", "h5", "h6"):
             if self.class_weight(header) < 0 or self.get_link_density(header) > 0.33:
+                self.debug("Dropped header "+describe(header)+ " weight: %f" % self.class_weight(header) + "link dens:%f " % self.get_link_density(header) )
                 header.drop_tree()
 
         for elem in self.tags(node, "form", "iframe", "textarea"):
