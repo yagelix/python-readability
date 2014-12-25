@@ -194,6 +194,7 @@ class Document:
                     # Loop through and try again.
                     continue
                 else:
+
                     return cleaned_article
         except StandardError, e:
             log.exception('error getting summary: ')
@@ -568,6 +569,13 @@ class Document:
                 pass
 
         self.html = node
+        if self.options.get('replace_a'):
+            newa = self.options.get('replace_a')
+            for a in self.html.iter('a'):
+                if a.get('href'):
+                    print("Setting tag to {}".format(newa))
+                    a.tag = newa
+
         return self.get_clean_html()
 
 
@@ -605,6 +613,7 @@ def main():
     parser.add_option('-u', '--url', default=None, help="use URL instead of a local file")
     parser.add_option('-p', '--positive-keywords', default=None, help="positive keywords (separated with comma)", action='store')
     parser.add_option('-n', '--negative-keywords', default=None, help="negative keywords (separated with comma)", action='store')
+    parser.add_option('-a', '--replace-a', default=None, help="replace a tag with value", action='store')
     (options, args) = parser.parse_args()
 
     if not (len(args) == 1 or options.url):
@@ -622,6 +631,7 @@ def main():
         print Document(file.read(),
             debug=options.verbose,
             url=options.url,
+            replace_a=options.replace_a,
             positive_keywords = options.positive_keywords,
             negative_keywords = options.negative_keywords,
         ).summary().encode(enc, 'replace')
